@@ -1,0 +1,1 @@
+# Ejercicios2022_VisionArtificial
