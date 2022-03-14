@@ -5,7 +5,7 @@ def adivinar(intentos=1):
     for x in range (intentos):
         numero_ingresado=int(input("Ingrese un numero entero: "))
         if (numero_ingresado == numero_random):
-            print ("El numero %u fue adivinado en el intento %u".format(numero_random, x))
+            print ("El numero {} fue adivinado en el intento {}".format(numero_random, x))
             break
         else:
             if(numero_ingresado>numero_random):
@@ -15,4 +15,4 @@ def adivinar(intentos=1):
     else:
         print ("El numero no fue adivinado")
 
-adivinar(5)
+adivinar(7)
