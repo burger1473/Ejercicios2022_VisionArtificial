@@ -1,5 +1,20 @@
+'''/*=============================================================================
+ * Author: Fabian Burgos
+ * Date: 14/03/2022
+ * Version: Python 3.7.0
+ *===========================================================================*/'''
+
 import random
 
+#======================== Implementaciones=============================
+
+'''/*========================================================================
+Funcion: adivinar
+Descripcion: Funcion que permite adiviar un numero ramdon x intentos
+Parametros de entrada:
+                      intentos: numero que especifica la cantidad de intentos que se tiene
+No retorna nada
+========================================================================*/'''
 def adivinar(intentos=1):
     numero_random = random.randint(0,100)
     for x in range (intentos):
