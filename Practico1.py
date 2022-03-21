@@ -2,6 +2,7 @@
  * Author: Fabian Burgos
  * Date: 14/03/2022
  * Version: Python 3.7.0
+ * Descripcion: función adivinar que permita adivinar un número generado en forma aleatoria
  *===========================================================================*/'''
 
 import random
