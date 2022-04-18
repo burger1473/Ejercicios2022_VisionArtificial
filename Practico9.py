@@ -171,7 +171,7 @@ open_button = ttk.Button(
 #Describo boton para guardar recorte
 guardar_button = ttk.Button(
     root,
-    text='Guardar recorte',
+    text='Guardar imagen',
     command=Guardar_imagen 
 )
 
