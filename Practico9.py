@@ -3,7 +3,7 @@
  * Date: 18/04/2022
  * Version: Python 3.7.0
  *          Open CV: 4.5.4-dev
- * Descripcion: Transformación afín - Incrustando imágenes
+ * Descripcion: Rectificando imágenes
  *===========================================================================*/'''
 
 #======================== Incluciones ====================================
@@ -16,13 +16,13 @@ import cv2                                      #Librerira opencv
 import copy                                     #Para poder copiar matrices
 
 #======================== Variable ====================================
-Nombre_app="Practico 8"
+Nombre_app="Practico 9"
 ubicacion=""
 img = np.zeros((512, 512, 3),np.uint8)
 img_mod = np.zeros((512, 512, 3),np.uint8)
 img_dos = np.zeros((512, 512, 3),np.uint8)
 cant_puntos = 0
-puntos = [[0,0],[0,0],[0,0]]
+puntos = [[0,0],[0,0],[0,0],[0,0]]
 
 #======================== Implementaciones=============================
 
@@ -44,25 +44,25 @@ def Keyboardpress( key):
 
 
 '''/*========================================================================
-Funcion: transformacion_afin
-Descripcion: Realiza la transformacion afin de una imagen y la incrusta en otra
+Funcion: transformación
+Descripcion: Realiza el rectificado de una imagen y la incrusta en otra
 Sin parametro de entrada
 No retorna nada
 ========================================================================*/'''
-def transformacion_afin():
+def transformacion():
     global img, img_dos, img_mod
     rows, cols = img_dos.shape[:2]  #Tamaño de la imagen a transformar e incrustar
     rows2, cols2 = img.shape[:2]    #Tamaño de la imagen original
 
-    #Defino los 3 pares de puntos correspondientes
-    input_pts = np.float32([[0,0], [cols,0], [cols,rows]])
-    output_pts = np.float32([[puntos[0][0],puntos[0][1]], [puntos[1][0],puntos[1][1]], [puntos[2][0],puntos[2][1]]])
+    #Defino los 4 pares de puntos correspondientes
+    input_pts = np.float32([[0,0], [cols,0], [cols,rows], [0,rows]])
+    output_pts = np.float32([[puntos[0][0],puntos[0][1]], [puntos[1][0],puntos[1][1]], [puntos[2][0],puntos[2][1]], [puntos[3][0],puntos[3][1]]])
     
-    #Calcule la matriz de transformación usando cv2.getAffineTransform()
-    M= cv2.getAffineTransform(input_pts , output_pts)
+    #Calcule la matriz de transformación usando cv2.getPerspectiveTransfor()
+    M= cv2.getPerspectiveTransform(input_pts , output_pts)
     
     #Aplico la transformación afín usando cv2.warpAffine()
-    dst = cv2.warpAffine(img_dos, M, (cols2,rows2))
+    dst = cv2.warpPerspective(img_dos, M, (cols2,rows2))
     
     cambiar_texto_label2("Por favor espere...", "blue")  #Cambio texto y color de label2
 
@@ -85,18 +85,18 @@ No retorna nada
 def callback ( event , x , y , flags , param):
     global img, cant_puntos, img_dos
     if event == cv2.EVENT_LBUTTONDOWN:                                     #Si el boton izquierdo se presiona
-        if cant_puntos<3:
+        if cant_puntos<4:
             cv2.circle(img, (x,y) , 5 , (0,0,255) , -1)                    #Dibujo punto
             puntos[cant_puntos][0]=x                                       #Almaceno la posicion x del punto
             puntos[cant_puntos][1]=y                                       #Almaceno la posicion y del punto
             cant_puntos=cant_puntos+1
     elif event == cv2.EVENT_LBUTTONUP:                                     #Si el boton izquierdo fue levantado
-        if cant_puntos == 3:
+        if cant_puntos == 4:
             cambiar_texto_label2("Seleccionar imagen a incrustar", "red")  #Cambio texto y color de label2
             ubicacion = filedialog.askopenfilename(title='Seleccionar imagen a incrustar',initialdir='/', filetypes=(('Archivo png', '*.png*'),('Archivo jpg', '*.jpg'))) #Obtengo la ruta seleccionada
             img_dos = cv2.imread(ubicacion , cv2.IMREAD_COLOR)             #Obtengo la imagen de la ubicacion seleccionada
-            cant_puntos=4                                                  #Valorizo en 4 para que cualquier click izquierdo no tenga efecto
-            transformacion_afin()
+            cant_puntos=5                                                  #Valorizo en 5 para que cualquier click izquierdo no tenga efecto
+            transformacion()
 
     cv2.imshow('Original', img)                                            #Refresco muestra de imagen con recuadro
 
