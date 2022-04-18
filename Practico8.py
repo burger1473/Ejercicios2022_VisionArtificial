@@ -16,7 +16,7 @@ import cv2                                      #Librerira opencv
 import copy                                     #Para poder copiar matrices
 
 #======================== Variable ====================================
-Nombre_app="Practico 8"
+Nombre_app="Practico 8 - Burgos"
 ubicacion=""
 img = np.zeros((512, 512, 3),np.uint8)
 img_mod = np.zeros((512, 512, 3),np.uint8)
@@ -86,7 +86,7 @@ def callback ( event , x , y , flags , param):
     global img, cant_puntos, img_dos
     if event == cv2.EVENT_LBUTTONDOWN:                                     #Si el boton izquierdo se presiona
         if cant_puntos<3:
-            cv2.circle(img, (x,y) , 5 , (0,0,255) , -1)                    #Dibujo punto
+            cv2.circle(img, (x,y) , 3 , (0,0,255) , -1)                    #Dibujo punto
             puntos[cant_puntos][0]=x                                       #Almaceno la posicion x del punto
             puntos[cant_puntos][1]=y                                       #Almaceno la posicion y del punto
             cant_puntos=cant_puntos+1
