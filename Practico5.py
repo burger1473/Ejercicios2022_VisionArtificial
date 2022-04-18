@@ -25,8 +25,8 @@ fx= -1
 fy= -1
 img = np.zeros((512, 512, 3),np.uint8)
 img_mod = np.zeros((512, 512, 3),np.uint8)
-img_rec = np.zeros((512, 512, 3),np.uint8)
-
+img_rec = np.zeros((1, 1, 3),np.uint8)
+imagen_visible = 0
 
 #======================== Implementaciones=============================
 
@@ -56,7 +56,7 @@ Sin parametro de entrada
 No retorna nada
 ========================================================================*/'''
 def draw_paint ( event , x , y , flags , param):
-    global ix , iy, fx , fy , drawing , mode, img_mod, img_rec
+    global ix , iy, fx , fy , drawing , mode, img_mod, img_rec, imagen_visible
     if event == cv2.EVENT_LBUTTONDOWN:                                     #Si el boton izquierdo se presiona
         drawing = True                                                     #Indico que estoy dibujando
         ix , iy = x , y                                                    #Guardo coordenadas iniciales x e y
@@ -65,6 +65,8 @@ def draw_paint ( event , x , y , flags , param):
     elif event == cv2.EVENT_MOUSEMOVE:                                     #Si el mause se mueve
         if drawing is True :
             if mode is True :
+                img_mod=copy.deepcopy(img)                                 #Copio la imagen orginial para borrar el anterior recuadro verde
+                cv2.imshow('image', img_mod)                               #Refresco la imagen
                 cv2.rectangle(img_mod,(ix,iy) , (x,y) , (0,255,0) , -1)    #Dibujo rectangulo
             else:
                 cv2.circle(img_mod , (x,y) , 5 , (0,0,255) , -1)
@@ -74,11 +76,18 @@ def draw_paint ( event , x , y , flags , param):
             cv2.rectangle (img_mod, (ix,iy) , (x,y) , (0,255,0) , -1)      #Dibujo rectangulo
             fx , fy = x , y                                                #Guardo posicion x e y
             img_rec=img[iy:fy, ix:fx]                                      #Recorto imagen
+            img_mod=copy.deepcopy(img)                                     #Copio la imagen orginial para borrar el anterior recuadro verde
+            cv2.imshow('image', img_mod)                                   #Refresco la imagen
+            if imagen_visible:
+                cv2.destroyWindow('Recorte')                               #Cierro la ventana anterior del recorte
+            cv2.imshow('Recorte', img_rec)                                 #Refresco muestra de imagen recortada
+            imagen_visible = 1                                             #Indico que la ventana esta abierta para luego cerrarla antes de refrescar un nuevo recorte
         else:
             cv2.circle(img_mod, (x,y) , 5 , (0,0,255) , -1)                #Dibujo punto
     cv2.imshow('image', img_mod)                                           #Refresco muestra de imagen con recuadro
-    cv2.imshow('Recorte', img_rec)                                         #Refresco muestra de imagen recortada
-
+    
+    
+    
 '''/*========================================================================
 Funcion: Abrir_foto
 Descripcion: Permite seleccionar una foto
@@ -145,7 +154,7 @@ def cambiar_texto_label2(texto, color):
 root = tk.Tk()
 
 bit = root.iconbitmap('icon.ico')
-root.title('Practico4')
+root.title('Practico 5 - Fabian Burgos')
 root.resizable(False, False)
 root.geometry('300x140')
 barra = DoubleVar()
