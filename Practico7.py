@@ -116,7 +116,7 @@ traslacion_x = DoubleVar()
 traslacion_y = DoubleVar()
 escala = DoubleVar()
 bit = root.iconbitmap('icon.ico')
-root.title('Practico6')
+root.title('Practico 7')
 root.resizable(False, False)
 root.geometry('300x500')
 
