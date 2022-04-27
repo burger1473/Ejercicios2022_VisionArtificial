@@ -155,7 +155,7 @@ def cambiar_texto_label2(texto, color):
 # Creo el root de windows
 root = tk.Tk()
 
-bit = root.iconbitmap('icon.ico')
+#bit = root.iconbitmap('icon.ico')
 root.title(Nombre_app)
 root.resizable(False, False)
 root.geometry('300x140')
