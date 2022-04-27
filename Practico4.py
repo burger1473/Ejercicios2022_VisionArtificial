@@ -21,8 +21,10 @@ fourcc = cv2.VideoWriter_fourcc('X','V','I','D')                #Indico codifica
 #Obtengo un frame y miro su tamaño para indicar el framesize del video
 if cap.isOpened():                                              #Si hay una captura
     ret2, frame2 = cap.read()                                   #Tomo frame
-    x=frame2.shape[1]                                           #Obtengo tamaño en x
-    y=frame2.shape[0]                                           #Obtengo tamaño en y
+    x = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))                  #Obtengo tamaño en x
+    y = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))                 #Obtengo tamaño en y
+    #x=frame2.shape[1]                                          #Obtengo tamaño en x
+    #y=frame2.shape[0]                                          #Obtengo tamaño en y
 
 
 out = cv2.VideoWriter('output.avi', fourcc , 20.0, (x,y))       #Establezo ubicacion, codificacion, framerate y framesize del video a guardar
