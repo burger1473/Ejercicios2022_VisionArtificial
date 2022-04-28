@@ -3,7 +3,10 @@
  * Date: 27/04/2022
  * Version: Python 3.7.0
  *          Open CV: 4.5.4-dev
- * Descripcion: Rectificando imágenes
+ *          Desarrollado en: Windows 10 x64
+ * Descripcion: Deteccion de 6 marcadores ARuCo y visualización de videos seleccionados
+ *              sobre las 4 esquinas de los primeros 4 marcadores. Los otros dos marcadores
+ *              se utilizan para cambiar los videos hacia adelante o hacia atras como en un tv.
  *===========================================================================*/'''
 
 #======================== Incluciones ====================================
@@ -54,8 +57,6 @@ def transformacion(pto0, pto1, pto2, pto3, img1, img2):
     #cv2.imshow('Resultado', img1)                            #Muestro el resultado
     return img1
     
-
-
 '''/*========================================================================
 Funcion: Seleccionar_videos
 Descripcion: Permite seleccionar multiples videos que se van a mostrar
@@ -66,8 +67,6 @@ def Seleccionar_videos():
     global ubicacion                                            #Obtengo las variables globales
     ubicacion = filedialog.askopenfilename(title='Abrir archivos',initialdir='/', filetypes=(('Archivo mp4', '*.mp4*'),('Archivo avi', '*.avi')), multiple=True) #Obtengo la ruta seleccionada
     cambiar_texto_label2("Videos seleccionados", "green")       #Cambio texto y color del label2
-    #print (len(ubicacion))
-
 
 '''/*========================================================================
 Funcion: Generar_Aruco
@@ -194,8 +193,6 @@ def Video_RA():
         else:                                                   
             break                                                                       #Salgo del while
     
-    
-
 '''/*========================================================================
 Funcion: cambiar_texto_label2
 Descripcion: Permite cambiar texto y color del label2
@@ -217,7 +214,7 @@ root = tk.Tk()
 #bit = root.iconbitmap('icon.ico')
 root.title(Nombre_app)
 root.resizable(False, False)
-root.geometry('300x340')
+root.geometry('300x300')
 id_generar = DoubleVar()
 
 #Describo boton abrir archivo
