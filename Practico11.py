@@ -50,7 +50,7 @@ def transformacion(pto0, pto1, pto2, pto3, img1, img2):
     M = cv2.getPerspectiveTransform(input_pts , output_pts)   #Calcule la matriz de transformación usando cv2.getPerspectiveTransfor()
     #M, status = cv2.findHomography(input_pts , output_pts)
     
-    Perspectiva = cv2.warpPerspective(img2, M, (cols2,rows2))  #Aplico la transformación afín usando cv2.warpAffine()
+    Perspectiva = cv2.warpPerspective(img2, M, (cols2,rows2)) #Aplico la transformación afín usando cv2.warpAffine()
     cv2.fillConvexPoly(img1, output_pts.astype(int), 8, 16)   #se puede usar para llenar un polígono convexo, solo proporcione los vértices del polígono convexo.
                                                               #Rellana con blanco el poligono formado por los puntos de salida
     img1=img1+Perspectiva                                     #Sumo la imagen original con la perspectiva
@@ -122,7 +122,7 @@ def Video_RA():
     global n_video
     flecha_arriba=0
     flecha_abajo=0
-    cap = cv2.VideoCapture(0)                                                  #Capturo video del dispositivo 0
+    Num_frame=0
     cambiar_texto_label2("Para salir del RA presione la letra 'q'", "black")   #Cambio texto y color de label2
     if ubicacion == "":
         cambiar_texto_label2("Seleccione un video primero", "red")             #Cambio texto y color de label2
@@ -186,6 +186,10 @@ def Video_RA():
                         cap2 = cv2.VideoCapture(ubicacion[n_video])                     #Cambio el video a reproducir
 
             cv2.imshow('Salida', frame)                                                 #Muestro el frame final
+            Num_frame += 1                                                              #Incrmento por cada frame reproducido
+            if Num_frame == cap2.get(cv2.CAP_PROP_FRAME_COUNT)-5:                         #Si el numero de frame es igual a la cantidad de frame que tiene el video
+                Num_frame = 0                                                           #Reseteo los fram del video para que vuelva a comenzar en loop
+                cap2 = cv2.VideoCapture(ubicacion[n_video])                                    #Reseteo los frame del video para que vuelva a comenzar
             if cv2.waitKey(1)&0xFF==ord('q'):                                           #Si se presiona la tecla 'q'
                 cv2.destroyWindow('Salida')                                             #Cierro frame camara
                 break                                                                   #Salgo del while
