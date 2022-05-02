@@ -19,6 +19,11 @@
  *             La matriz se puede dejar fija cambiando las variables mtx y dist.
  *             Si estas variables no se modificaron, es necesario calibrar con el proceso
  *             de captura 5 fotos mediante este software precionando el boton "Calibrar camara"
+ *
+ * Referencias: Distance from ArUco Marker https://stackoverflow.com/questions/68019526/how-can-i-get-the-distance-from-my-camera-to-an-opencv-aruco-marker
+ *              Arauco marker detecion     https://docs.opencv.org/4.x/d9/d6a/group__aruco.html#ga84dd2e88f3e8c3255eb78e0f79571bd1
+ *              Realidad aumentada en 3D   https://www.youtube.com/watch?v=pwtiJ5CsvaI&t=1137s
+ *
  *===========================================================================*/'''
 
 #======================== Incluciones ====================================
@@ -298,30 +303,12 @@ root = tk.Tk()
 #bit = root.iconbitmap('icon.ico')
 root.title(Nombre_app)
 root.resizable(False, False)
-root.geometry('300x300')
+root.geometry('300x250')
 id_generar = DoubleVar()
 
-#Describo boton para calibrar camara
-Calibrar_camara_bt = ttk.Button(
-    root,
-    text='Calibrar camara',
-    command=Calibrar_camara
-)
-
-#Describo boton para generar marcador
-Generar_marcador = ttk.Button(
-    root,
-    text='Generar marcador',
-    command=Generar_Aruco 
-)
-
-#Describo boton para visualizar video por realidad aumentada
-Reproducir_video = ttk.Button(
-    root,
-    text='Medir distancia',
-    command=Medir_distancia
-)
-
+Calibrar_camara_bt = ttk.Button(root, text='Calibrar camara', command=Calibrar_camara) #Describo boton para calibrar camara
+Generar_marcador = ttk.Button(root, text='Generar marcador', command=Generar_Aruco)    #Describo boton para generar marcador
+Reproducir_video = ttk.Button(root, text='Medir distancia', command=Medir_distancia)   #Describo boton para visualizar video por realidad aumentada
 
 #Implemento los botones en el root
 Calibrar_camara_bt.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
@@ -330,8 +317,6 @@ Generar_marcador.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 Reproducir_video.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 
 #genero un label
-label1 = Label(root,text="")
-label1.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 label2 = Label(root,text="")
 label2.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 
