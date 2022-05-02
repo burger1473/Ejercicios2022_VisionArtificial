@@ -1,12 +1,24 @@
 '''/*=============================================================================
  * Author: Fabian Burgos
- * Date: 27/04/2022
+ * Date: 02/05/2022
  * Version: Python 3.7.0
  *          Open CV: 4.5.4-dev
  *          Desarrollado en: Windows 10 x64
- * Descripcion: Deteccion de 6 marcadores ARuCo y visualización de videos seleccionados
- *              sobre las 4 esquinas de los primeros 4 marcadores. Los otros dos marcadores
- *              se utilizan para cambiar los videos hacia adelante o hacia atras como en un tv.
+ *
+ * Descripcion: Permite detectar un marcador aruco y calcular la distancia 3d desde
+ *              el punto del centro de la camara y el punto del centro del marcadro.
+ *
+ *             Para esto se necesita calibrar la camara con un "tablero de ajedres"
+ *             para obtener la matriz de calibracion y el vector de distorcion.
+ *
+ *             Este software permite hacer todo lo necesario para obtener la distancia.
+ *                 1) Calibrar la camara y obtener la matriz y el vector
+ *                 2) Generar un marcado aruco.
+ *                 3) Medir la distancia.
+ *             
+ *             La matriz se puede dejar fija cambiando las variables mtx y dist.
+ *             Si estas variables no se modificaron, es necesario calibrar con el proceso
+ *             de captura 5 fotos mediante este software precionando el boton "Calibrar camara"
  *===========================================================================*/'''
 
 #======================== Incluciones ====================================
@@ -17,14 +29,123 @@ from tkinter import filedialog as filedialog    #Para abrir y guardar archivos
 import numpy as np                              #Para tratar con numeros matematicos para opencv    
 import cv2                                      #Librerira opencv
 import copy                                     #Para poder copiar matrices
+import glob                                     #Para buscar archivos de una misma extencion en una carpeta
+from math import sin, cos, sqrt, atan2, pi      #Para aplicaciones matematicas y trigonometricas
+from tkinter import messagebox                  #Para mensajes del sistema
+import os                                       #Para verificar si existen rutas o archivos
 
 #======================== Variable ====================================
 Nombre_app="Practico 11 - Burgos"
-ubicacion=""
-cap = cv2.VideoCapture(0)                                       #Capturo video del dispositivo 0
-n_video=0
+mtx= np.zeros((3, 3))                           #Matriz de la camara
+dist= None                                      #Distorcion de la camara
+markerSizeInCM = 11.0                           #Tamaño real del marcador
+cap = cv2.VideoCapture(0)                       #Capturo video del dispositivo 0
+
+if cap.isOpened():                                              #Si hay una captura
+    ret2, frame2 = cap.read()                                   #Tomo frame
+    FRAME_WIDTH = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))        #Obtengo tamaño en x
+    FRAME_HEIGHT = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))      #Obtengo tamaño en y
 
 #======================== Implementaciones=============================
+
+'''/*========================================================================
+Funcion: Tomar_foto
+Descripcion: Permite capturar un frame desde la camara cuando se presiona una
+             determinada letra y guardar dicho frame como una imagen png.
+Sin parametro de entrada
+Retorna:     letra:  letra que se debe precionar para capturar el frame.
+             dirccion_guarado: direccion donde se guardara la imagen.
+========================================================================*/'''
+def Tomar_foto(letra, dirccion_guarado):
+    global cap                                                                       #Variable globales
+    while(cap.isOpened()):                                                           #Mientras hay captura
+        ret, frame = cap.read()                                                      #Tomo frame de la camara
+        if ret is True:
+            cv2.imshow('Frame', frame)                                               #Muestro frame
+            if cv2.waitKey(1)&0xFF==ord(letra):                                        #Si se presiona la tecla
+                cv2.imwrite(dirccion_guarado,frame)                                  #Guardo imagen
+                cv2.destroyWindow('Frame')                                           #Cierro frame camara
+                break                                                                #Salgo del while
+        else:
+            break
+            
+'''/*========================================================================
+Funcion: Calibrar_camara
+Descripcion: Sirve para calibrar la camara obteninedo la matriz de la camara y la distorion
+             Para esto se utilizan una serie de fotos de un tablero de ajedres tomadas en
+             diferentes perspectivas con la camara que se va a utilizar (el soft indica las instrucciones).
+             Si las imagenes ya existen por que se calibro anteriormente, se pueden utilizar esas mismas
+             en caso contrario, el software le permite capturar las 5 imagenes mediante indicaciones prsionando
+             la tecla c.
+             Por ultimo se procesa la imagen y se obtiene la calibracion.
+Sin parametro de entrada
+Retorna:     mtx:  Matriz de calibracion de la camara.
+             dist: Vector de distorcion de la camara.
+========================================================================*/'''
+def Calibrar_camara():
+    global mtx, dist, FRAME_WIDTH, FRAME_HEIGHT                                       #Variables gloabales
+
+    """Declaro variables que se van a utilizar"""
+    tablero =(9,6)                                                                    #Esquinas internas horizontal y vertical respectivamente (del tablero de ajedres)
+    tam_frame = (FRAME_WIDTH, FRAME_HEIGHT)                                           #Resolucion del frame de la camara
+
+    criterio = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)        #Criterio con el que opencv detecta las esquinas
+    
+    puntos_obj = np.zeros((tablero[0]*tablero[1], 3), np.float32)                     #Preparamos los puntos del tablero
+    puntos_obj[:,:2] = np.mgrid[0: tablero[0], 0:tablero[1]].T.reshape(-1,2)          #Preparamos los puntos del tablero
+
+    puntos_3d = []                                                                    #Preparamos las listas para almacenar los puntos del mundo real y de la imagen
+    puntos_img = []                                                                   #Preparamos las listas para almacenar los puntos del mundo real y de la imagen
+
+    """Saco 5 imagenes al tablero de ajedres en diferentes angulos"""
+    existe=os.path.exists('calibracion/cali0.png') and os.path.exists('calibracion/cali1.png') and os.path.exists('calibracion/cali2.png') and os.path.exists('calibracion/cali3.png') and os.path.exists('calibracion/cali4.png') #Verifico si ya existen las imagenes de calibración
+    respuesta=False                                                               #Para determinar si se quieren volver a tomar las fotos para calibrar camara
+    if existe == True:                                                            #Si las imagenes ya existen
+        respuesta=messagebox.askokcancel(message="Ya existen imagenes para realizar la calibracion ¿Desea realizar nuevas imagenes?", title="Calibración")
+    
+    if (existe == True and respuesta == True) or existe == False:                 #Si las imagenes existen y se quiere tomar nuevas imagenes o si no existen
+        pregunta=messagebox.askokcancel(message="En este proseso se pedira sacar 5 fotos con las instrucciones indicadas, para sacar cada foto debe presionar la letra 'c' ¿Desea continuar?", title="Calibración") #Indico procesamiento y pido confirmación
+
+        if pregunta == False:                                                     #Si se cancelo el proceso
+            return 0,0                                                            #Retorno y salgo de la funcion
+        else:                                                                     #Inicio proceso para sacar fotos y guardarlas
+            cambiar_texto_label2("Posiciones el tablero de forma recta y precione 'c'", "Red") #Cambio texto y color de label2
+            Tomar_foto("c", "calibracion/cali0.png")                                           #Espero letra y guardo foto                                              #Reseteo variable letra
+            cambiar_texto_label2("Rote el tablero a 90° y precione 'c'", "Red")                #Cambio texto y color de label2
+            Tomar_foto("c", "calibracion/cali1.png")                                           #Espero letra y guardo foto 
+            cambiar_texto_label2("Incline el tablero en perspectiva y precione 'c'", "Red")    #Cambio texto y color de label2
+            Tomar_foto("c", "calibracion/cali2.png")                                           #Espero letra y guardo foto 
+            cambiar_texto_label2("Cambie perspectiva y precione 'c'", "Red")                   #Cambio texto y color de label2
+            Tomar_foto("c", "calibracion/cali3.png")                                           #Espero letra y guardo foto 
+            cambiar_texto_label2("Rote el tablero y precione 'c'", "Red")                      #Cambio texto y color de label2
+            Tomar_foto("c", "calibracion/cali4.png")                                           #Espero letra y guardo foto 
+            
+    else:
+        print("Utilizando imagenes existentes")
+
+    """Realizo el proceso de calibracion con las 5 imagenes"""
+    fotos = glob.glob('calibracion/*.png')                                            #Busco los archivos con formato .png en el directorio indicado
+    for foto in fotos:                                                                #Recorro cada archivo .png encontrado
+        #print(foto)
+        img = cv2.imread(foto)                                                        #Leo la imagen
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)                                  #Convierto a escala de grises
+
+        ret, esquinas =cv2.findChessboardCorners(gray, tablero, None)                 #Buscamos las esquinas del tablero
+
+        if ret == True:
+            puntos_3d.append(puntos_obj)                                              #Agrego a puntos_3d los puntos_obj          
+            esquinas2 = cv2.cornerSubPix(gray, esquinas, (11,11), (-1,-1), criterio)  #Encuentra la ubicación precisa de subpíxeles de las esquinas
+            puntos_img.append(esquinas)                                               #Agrego esquinas a puntos_img
+            cv2.drawChessboardCorners(img, tablero, esquinas2, ret)                   #Dibujo las esquinas del tablero en el frame
+            cv2.imshow("img calibracion", img)                                        #Muestro frame con las esquinas encontradas
+
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(puntos_3d, puntos_img, tam_frame, None, None) #Calibracion de la camara
+    print ("Matriz de calibración:")
+    print (mtx)
+    print ("Vector de distorción:")
+    print (dist)
+    cambiar_texto_label2("Calibracion exitosa", "Green")                              #Cambio texto y color de label2
+    return mtx, dist
 
 '''/*========================================================================
 Funcion: transformación
@@ -56,17 +177,6 @@ def transformacion(pto0, pto1, pto2, pto3, img1, img2):
     img1=img1+Perspectiva                                     #Sumo la imagen original con la perspectiva
     #cv2.imshow('Resultado', img1)                            #Muestro el resultado
     return img1
-    
-'''/*========================================================================
-Funcion: Seleccionar_videos
-Descripcion: Permite seleccionar multiples videos que se van a mostrar
-Sin parametro de entrada
-No retorna nada
-========================================================================*/'''
-def Seleccionar_videos():
-    global ubicacion                                            #Obtengo las variables globales
-    ubicacion = filedialog.askopenfilename(title='Abrir archivos',initialdir='/', filetypes=(('Archivo mp4', '*.mp4*'),('Archivo avi', '*.avi')), multiple=True) #Obtengo la ruta seleccionada
-    cambiar_texto_label2("Videos seleccionados", "green")       #Cambio texto y color del label2
 
 '''/*========================================================================
 Funcion: Generar_Aruco
@@ -109,7 +219,7 @@ def obtener_puntos_marcador(id, markerCorners, markerIds):
     return esquinas
 
 '''/*========================================================================
-Funcion: Video_RA
+Funcion: Medir_distancia
 Descripcion: Introduce los videos con realidad virtual entre el rectangulo que
              generan los marcadores 0, 1, 2, 3 (en sentido horario) mediante
              rectificacion de la imagen de cada frame.
@@ -118,18 +228,19 @@ Descripcion: Introduce los videos con realidad virtual entre el rectangulo que
 Sin parametro de entrada
 No retorna nada
 ========================================================================*/'''
-def Video_RA():
-    global n_video
-    flecha_arriba=0
-    flecha_abajo=0
-    Num_frame=0
-    cambiar_texto_label2("Para salir del RA presione la letra 'q'", "black")   #Cambio texto y color de label2
-    if ubicacion == "":
-        cambiar_texto_label2("Seleccione un video primero", "red")             #Cambio texto y color de label2
-        return 0                                                               #Salgo de la funcion retornando cero
+def Medir_distancia():
+    global mtx, dist, markerSizeInCM
 
-    cap2 = cv2.VideoCapture(ubicacion[n_video])                                #Capturo el video que se encuentra en la ubicacion en la posicion n_video
-    framerate = cap2.get(cv2.CAP_PROP_FPS)                                     #Obtengo el frame rate del video
+    if (mtx == np.zeros((3, 3))).all():            #Si la camra no esta calibrada
+        messagebox.showerror(message="Es necesario calibrar la camara primero", title="Error")
+        return                                                          #Salgo de la funcion
+
+    if (dist == None).all():                                            #Si la camra no esta calibrada
+        messagebox.showerror(message="Es necesario calibrar la camara primero", title="Error")
+        return                                                          #Salgo de la funcion
+        
+    cambiar_texto_label2("Para salir presione la letra 'q'", "black")   #Cambio texto y color de label2
+    
     while(cap.isOpened()):                                                     #Mientras hay captura
         ret, frame = cap.read()                                                #Tomo frame de la camara
         if ret is True:                                             
@@ -139,57 +250,27 @@ def Video_RA():
             #print("Cant: "+str(len(markerCorners)))
             #print(np.array(markerIds))
             
-            if (np.array(markerIds) != None).all():                            #Si existe marcadores en el frame
-                if (0 in markerIds) and (1 in markerIds) and (2 in markerIds) and (3 in markerIds): #Si estan los marcadores del 0 al 3
-                    index_id0 = np.squeeze(np.where(markerIds==0))             #Obtiene la posicion del id x en el array
-                    refPt0_id0 = np.squeeze(markerCorners[index_id0[0]])[0]    #Obtiene la esquina 0 del id de index
-
-                    index_id1 = np.squeeze(np.where(markerIds==1))             #Obtiene la posicion del id x en el array
-                    refPt1_id1 = np.squeeze(markerCorners[index_id1[0]])[1]    #Obtiene la esquina 1 del id de index
-
-                    index_id2 = np.squeeze(np.where(markerIds==2))             #Obtiene la posicion del id x en el array
-                    refPt2_id2 = np.squeeze(markerCorners[index_id2[0]])[2]    #Obtiene la esquina 2 del id de index
-
-                    index_id3 = np.squeeze(np.where(markerIds==3))             #Obtiene la posicion del id x en el array
-                    refPt3_id3 = np.squeeze(markerCorners[index_id3[0]])[3]    #Obtiene la esquina 2 del id de index
-
-                    retvid , framevid = cap2.read()                            #Leo cada frame del video a mostrar
+            if (np.array(markerIds) != None).all():                                     #Si existe marcadores en el frame
+                if (0 in markerIds):                                                    #Si existe marcador con id 0
+                    esquinas=obtener_puntos_marcador(0, markerCorners, markerIds)       #Obtengo esquinas del marcador 4
+                    imagen = cv2.imread('recursos/Punto_medicion.png')                  #Leo la imagen de flecha arriba
+                    frame=transformacion(esquinas[0], esquinas[1], esquinas[2], esquinas[3], frame, imagen) #Realizo la transformacion incustando una imagen en el marcado 0
                     
-                    frame=transformacion(refPt0_id0, refPt1_id1, refPt2_id2, refPt3_id3, frame, framevid) #Realizo la transformacion
-                    #cv2.rectangle(frame,(int(refPt0_id0[0]),int(refPt0_id0[1])) , (int(refPt2_id2[0]),int(refPt2_id2[1])) , (0,255,0) , -1)    #Dibujo rectangulo    
+                    rvec , tvec, _ = cv2.aruco.estimatePoseSingleMarkers(markerCorners, markerSizeInCM, mtx, dist) #Obtengo el vector de rotacion y desplazamiento de la camara respecto al centro del marcador aruco indicando las esquinas y el tamaño del marcador como tambien la matriz de calibracion de la camara y su distorcion (obtenidas de la calibración)
+                   
+                    #frame = cv2.aruco.drawDetectedMarkers(frame, markerCorners, markerIds)
+                    frame =cv2.aruco.drawAxis(frame, mtx, dist, rvec, tvec, 0.178)      #Dibujos los ejes cartecianos
                     
-                    if (4 in markerIds):                                                #Si existe marcador 4
-                        esquinas=obtener_puntos_marcador(4, markerCorners, markerIds)   #Obtengo esquinas del marcador 4
-                        imagen = cv2.imread('flecha_arriba.jpg')                        #Leo la imagen de flecha arriba
-                        frame=transformacion(esquinas[0], esquinas[1], esquinas[2], esquinas[3], frame, imagen) #Realizo la transformacion incustando la flecha en el marcado 4
-                        flecha_arriba=1                                                 #Indico que se coloco la flecha y que el marcador 4 esta siendo detectado
-                    else:                                                               #Si no detecto el marcador 4
-                        if flecha_arriba == 1:                                          #Si anteriormente se estaba detectando el marcador 4
-                            n_video=n_video+1                                           #Cambio de video (ya que se presiono la flecha provocando que el marcador se deje de detectar por un tiempo corto)
-                            flecha_arriba=0                                             #Indico que el marcador 4 no se detecto
-
-                    if (5 in markerIds):                                                #Si existe marcador 5
-                        esquinas=obtener_puntos_marcador(5, markerCorners, markerIds)   #Obtengo esquinas del marcador 5
-                        imagen = cv2.imread('flecha_abajo.jpg')                         #Leo la imagen de flecha abajo
-                        frame=transformacion(esquinas[0], esquinas[1], esquinas[2], esquinas[3], frame, imagen) #Realizo la transformacion incustando la flecha en el marcado 5
-                        flecha_abajo=1                                                  #Indico que se coloco la flecha y que el marcador 5 esta siendo detectado
-                    else:                                                               #Si no detecto el marcador 5
-                        if flecha_abajo == 1:                                           #Si anteriormente se estaba detectando el marcador 5
-                            n_video=n_video-1                                           #Cambio de video (ya que se presiono la flecha provocando que el marcador se deje de detectar por un tiempo corto)
-                            flecha_abajo=0                                              #Indico que el marcador 5 no se detecto
+                    #rvec entrega la distancia entre el punto de la camara y el centro del marcador aruco, por lo tanto entrega un vector que contiene la distancia x, y, z entre los dos puntos
+                    #rcev esta compuesto por tvec[a][b][c] donde a es el id del marcador, b debe ser 0, c es la posicion para obtener la distancia x, y, z
+                    inclinacion_rad = -1 * atan2(tvec[0][0][0], tvec[0][0][2])          #Trigonometria para obtener el angulo  https://www.superprof.es/apuntes/escolar/matematicas/analitica/recta/angulo-que-forman-dos-rectas.html
+                    inclinacion = inclinacion_rad / pi * 180                            #Convierto de rad a grados
+                    zDist = sqrt(tvec[0][0][0] ** 2 + tvec[0][0][1] ** 2 + tvec[0][0][2] ** 2)  #Trigonometria para encontrar la distancia en 3D (Modulo del vector) https://www.geogebra.org/m/QjnTG76X
                     
-                    if flecha_abajo == 0 or flecha_arriba == 0:                         #Si existio un cambio de video
-                        if n_video >= len(ubicacion):                                   #Si el numero incrementado es mayor a la cantidad de videos seleccionados
-                            n_video = 0                                                 #Indico que el video actual es el primero ya que vuelvo al incio
-                        if n_video < 0:                                                 #Si el numero decrementado es menor a cero
-                            n_video = len(ubicacion)-1                                  #Indico que el video actual es el ultimo video seleccionado
-                        cap2 = cv2.VideoCapture(ubicacion[n_video])                     #Cambio el video a reproducir
-
+                    #print(str(zDist)+" cm "+str(inclinacion)+" °")
+                    cv2.putText(frame, "%.2f cm  %.2f deg" % (zDist, inclinacion), (esquinas[3][0]+1, esquinas[3][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0)) #Escribo la distancia y angulo en el marcador
+                    
             cv2.imshow('Salida', frame)                                                 #Muestro el frame final
-            Num_frame += 1                                                              #Incrmento por cada frame reproducido
-            if Num_frame == cap2.get(cv2.CAP_PROP_FRAME_COUNT)-5:                         #Si el numero de frame es igual a la cantidad de frame que tiene el video
-                Num_frame = 0                                                           #Reseteo los fram del video para que vuelva a comenzar en loop
-                cap2 = cv2.VideoCapture(ubicacion[n_video])                                    #Reseteo los frame del video para que vuelva a comenzar
             if cv2.waitKey(1)&0xFF==ord('q'):                                           #Si se presiona la tecla 'q'
                 cv2.destroyWindow('Salida')                                             #Cierro frame camara
                 break                                                                   #Salgo del while
@@ -209,7 +290,6 @@ def cambiar_texto_label2(texto, color):
     label2.config(text = texto, fg=color)   #Cambia texto y color al label2
     root.update()                           #Actualiza los cambios instantaneamente
 
-
 #======================== Configuracion grafica =============================
 
 # Creo el root de windows
@@ -221,11 +301,11 @@ root.resizable(False, False)
 root.geometry('300x300')
 id_generar = DoubleVar()
 
-#Describo boton abrir archivo
-open_button = ttk.Button(
+#Describo boton para calibrar camara
+Calibrar_camara_bt = ttk.Button(
     root,
-    text='Seleccionar videos',
-    command= Seleccionar_videos
+    text='Calibrar camara',
+    command=Calibrar_camara
 )
 
 #Describo boton para generar marcador
@@ -238,14 +318,13 @@ Generar_marcador = ttk.Button(
 #Describo boton para visualizar video por realidad aumentada
 Reproducir_video = ttk.Button(
     root,
-    text='Ver video en RA',
-    command=Video_RA
+    text='Medir distancia',
+    command=Medir_distancia
 )
 
 
-
 #Implemento los botones en el root
-open_button.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
+Calibrar_camara_bt.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 s1 = tk.Scale(root, variable = id_generar, from_=0, to=100, tickinterval=20,  resolution =  1, orient=tk.HORIZONTAL, length=300, label = "Id del marcador a generar: ").pack()
 Generar_marcador.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 Reproducir_video.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)

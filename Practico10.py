@@ -68,9 +68,14 @@ def transformacion():
 
     #Calcule la matriz de transformación usando cv2.getPerspectiveTransfor()
     M= cv2.getPerspectiveTransform(input_pts , output_pts)
-    
+    #M[0][2]=M[0][2]+puntos[0][0]                       #Le sumo la traslacion en x
+    #M[1][2]=M[1][2]+puntos[0][1]                       #Le sumo la traslacion en x
+
     #Aplico la transformación afín usando cv2.warpAffine()
     img_transformada = cv2.warpPerspective(img, M, (cols2,rows2),flags=cv2.INTER_LINEAR)
+
+    
+    
     cv2.namedWindow('Resultado')                                  #Indico nombre de la ventana
     cv2.setMouseCallback ('Resultado',callback2)                  #Establesco evento de mause sobre la ventana
     cv2.imshow('Resultado', img_transformada)                     #Muestro el resultado
