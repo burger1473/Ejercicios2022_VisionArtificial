@@ -160,7 +160,7 @@ def Video_RA():
                     
                     if (4 in markerIds):                                                #Si existe marcador 4
                         esquinas=obtener_puntos_marcador(4, markerCorners, markerIds)   #Obtengo esquinas del marcador 4
-                        imagen = cv2.imread('recursos/flecha_arriba.jpg')                        #Leo la imagen de flecha arriba
+                        imagen = cv2.imread('recursos/flecha_arriba.jpg')               #Leo la imagen de flecha arriba
                         frame=transformacion(esquinas[0], esquinas[1], esquinas[2], esquinas[3], frame, imagen) #Realizo la transformacion incustando la flecha en el marcado 4
                         flecha_arriba=1                                                 #Indico que se coloco la flecha y que el marcador 4 esta siendo detectado
                     else:                                                               #Si no detecto el marcador 4
@@ -187,15 +187,15 @@ def Video_RA():
 
             cv2.imshow('Salida', frame)                                                 #Muestro el frame final
             Num_frame += 1                                                              #Incrmento por cada frame reproducido
-            if Num_frame == cap2.get(cv2.CAP_PROP_FRAME_COUNT)-5:                         #Si el numero de frame es igual a la cantidad de frame que tiene el video
-                Num_frame = 0                                                           #Reseteo los fram del video para que vuelva a comenzar en loop
-                cap2 = cv2.VideoCapture(ubicacion[n_video])                                    #Reseteo los frame del video para que vuelva a comenzar
+            if Num_frame == cap2.get(cv2.CAP_PROP_FRAME_COUNT)-10:                      #Si el numero de frame es igual a la cantidad de frame que tiene el video
+                Num_frame = 0                                                           #Reseteo los frame del video para que vuelva a comenzar en loop
+                cap2 = cv2.VideoCapture(ubicacion[n_video])                             #Reseteo los frame del video para que vuelva a comenzar
             if cv2.waitKey(1)&0xFF==ord('q'):                                           #Si se presiona la tecla 'q'
                 cv2.destroyWindow('Salida')                                             #Cierro frame camara
                 break                                                                   #Salgo del while
                                 
         else:                                                   
-            break                                                                       #Salgo del while
+            break                                                                       #Salgo del while 
     
 '''/*========================================================================
 Funcion: cambiar_texto_label2
@@ -250,7 +250,7 @@ s1 = tk.Scale(root, variable = id_generar, from_=0, to=100, tickinterval=20,  re
 Generar_marcador.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 Reproducir_video.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 
-#genero un label
+#Genero un label
 label1 = Label(root,text="")
 label1.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 label2 = Label(root,text="")

@@ -43,7 +43,7 @@ import os                                       #Para verificar si existen rutas
 Nombre_app="Practico 11 - Burgos"
 mtx= np.zeros((3, 3))                           #Matriz de la camara
 dist= None                                      #Distorcion de la camara
-markerSizeInCM = 11.0                           #Tamaño real del marcador
+markerSizeInCM = 13.0                           #Tamaño real del marcador
 cap = cv2.VideoCapture(0)                       #Capturo video del dispositivo 0
 
 if cap.isOpened():                                              #Si hay una captura
@@ -316,7 +316,7 @@ s1 = tk.Scale(root, variable = id_generar, from_=0, to=100, tickinterval=20,  re
 Generar_marcador.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 Reproducir_video.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 
-#genero un label
+#Genero un label
 label2 = Label(root,text="")
 label2.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 
