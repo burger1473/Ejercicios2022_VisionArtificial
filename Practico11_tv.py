@@ -170,7 +170,7 @@ def Video_RA():
 
                     if (5 in markerIds):                                                #Si existe marcador 5
                         esquinas=obtener_puntos_marcador(5, markerCorners, markerIds)   #Obtengo esquinas del marcador 5
-                        imagen = cv2.imread('recursos/flecha_abajo.jpg')                         #Leo la imagen de flecha abajo
+                        imagen = cv2.imread('recursos/flecha_abajo.jpg')                #Leo la imagen de flecha abajo
                         frame=transformacion(esquinas[0], esquinas[1], esquinas[2], esquinas[3], frame, imagen) #Realizo la transformacion incustando la flecha en el marcado 5
                         flecha_abajo=1                                                  #Indico que se coloco la flecha y que el marcador 5 esta siendo detectado
                     else:                                                               #Si no detecto el marcador 5

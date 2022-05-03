@@ -51,7 +51,7 @@ if cap.isOpened():                                              #Si hay una capt
     FRAME_WIDTH = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))        #Obtengo tamaño en x
     FRAME_HEIGHT = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))      #Obtengo tamaño en y
 
-#======================== Implementaciones=============================
+#======================== Implementaciones =============================
 
 '''/*========================================================================
 Funcion: Tomar_foto
