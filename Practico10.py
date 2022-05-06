@@ -42,14 +42,12 @@ Parameto de entrada: key: tecla presionada
 No retorna nada
 ========================================================================*/'''
 def Keyboardpress( key):
+    global  img_transformada
     key_char = key.char 
     print(key_char,"fue presionado")
     #Series de if para cada letra que deseamos accionar
-    if key_char == 'g':
-        Guardar_imagen()
-    if key_char == 'q':
-        cv2.destroyAllWindows()     #Cierro las ventans de opencv
-        root.destroy()              #Destruyo la aplicacion 
+    if key_char == 'r' or key_char == 'R':
+        cv2.imshow('Resultado', img_transformada) #Refresco la imagen
 
 
 '''/*========================================================================
@@ -64,20 +62,28 @@ def transformacion():
 
     #Defino los 4 pares de puntos correspondientes
     input_pts = np.float32([[puntos[0][0],puntos[0][1]], [puntos[1][0],puntos[1][1]], [puntos[2][0],puntos[2][1]], [puntos[3][0],puntos[3][1]]])
-    output_pts = np.float32([[0,0], [puerta_ancho.get()*mts_to_pixel.get(),0], [puerta_ancho.get()*mts_to_pixel.get(),puerta_alto.get()*mts_to_pixel.get()], [0,puerta_alto.get()*mts_to_pixel.get()]])
-
+    #Para los puntos de salida, tomo como referencia el punto 0 y el resto de puntos lo obtengo sumandole a este el alto y ancho obtenido por la relacion indicada por el usuario
+    #Recordar que la funcion getPerspectiveTransform lleva los input_pts a output_pts
+    output_pts = np.float32([[puntos[0][0],puntos[0][1]], [puntos[0][0]+puerta_ancho.get()*mts_to_pixel.get(),puntos[0][1]], [puntos[0][0]+puerta_ancho.get()*mts_to_pixel.get(),puntos[0][1]+puerta_alto.get()*mts_to_pixel.get()], [puntos[0][0],puntos[0][1]+puerta_alto.get()*mts_to_pixel.get()]])     #Con referencia de pixel/mts tomando el punto 1 como referencia
+    #Tomando referencia otros puntos:
+    #output_pts = np.float32([[puntos[2][0]-puerta_ancho.get()*mts_to_pixel.get(),puntos[2][1]-puerta_alto.get()*mts_to_pixel.get()], [puntos[2][0],puntos[2][1]-puerta_alto.get()*mts_to_pixel.get()], [puntos[2][0],puntos[2][1]], [puntos[2][0]-puerta_ancho.get()*mts_to_pixel.get(),puntos[2][1]]])     #Con referencia de pixel/mts tomando el punto 3 como referencia
+    #Sin tomar escala:
+    #ancho_pt1=puerta_ancho.get()*(puntos[2][1]-puntos[1][1])/puerta_alto.get() #Regla de 3
+    #output_pts = np.float32([[puntos[2][0]-ancho_pt1,puntos[1][1]], [puntos[2][0],puntos[1][1]], [puntos[2][0],puntos[2][1]], [puntos[2][0]-ancho_pt1,puntos[2][1]]])                                                                                                                                      #Sin referencia de pixel/mts tomando el punto 2 como referencia
+    #Sin tomar punto de referencia:
+    #output_pts = np.float32([[0,0], [puerta_ancho.get()*mts_to_pixel.get(),0], [puerta_ancho.get()*mts_to_pixel.get(),puerta_alto.get()*mts_to_pixel.get()], [0,puerta_alto.get()*mts_to_pixel.get()]])                                                                                                    #Con referencia de pixel/mts sin punto de refencia, es decir ref=0,0
+    
     #Calcule la matriz de transformación usando cv2.getPerspectiveTransfor()
     M= cv2.getPerspectiveTransform(input_pts , output_pts)
-    #M[0][2]=M[0][2]+puntos[0][0]                       #Le sumo la traslacion en x
-    #M[1][2]=M[1][2]+puntos[0][1]                       #Le sumo la traslacion en x
 
     #Aplico la transformación afín usando cv2.warpAffine()
-    img_transformada = cv2.warpPerspective(img, M, (cols2,rows2),flags=cv2.INTER_LINEAR)
+    img_transformada = cv2.warpPerspective(img, M, (cols2,rows2))
 
     
     
     cv2.namedWindow('Resultado')                                  #Indico nombre de la ventana
     cv2.setMouseCallback ('Resultado',callback2)                  #Establesco evento de mause sobre la ventana
+    root.bind('<Key>', lambda i : Keyboardpress(i))                        #Indico eventos de teclado y la funcion a la que se debe llamar
     cv2.imshow('Resultado', img_transformada)                     #Muestro el resultado
     cambiar_texto_label2("Proceso finalizado", "green")           #Cambio texto y color de label2
 
@@ -102,6 +108,7 @@ def callback ( event , x , y , flags , param):
             transformacion()
     cv2.imshow('Original', img_mod)                                 #Muestro imagen en la ventana
     
+
 '''/*========================================================================
 Funcion: callback2 
 Descripcion: Funcion a la cual se llama por algun evento producido por el mause en la figura 2
@@ -165,11 +172,11 @@ Sin parametro de entrada
 No retorna nada
 ========================================================================*/'''
 def Guardar_imagen():
-    global img_mod                                             #Obtengo las variables globales
+    global img_transformada                                     #Obtengo las variables globales
     directorio=filedialog.asksaveasfilename(initialdir = "/",title = "Guardar como",filetypes = (('Archivo png', '.png'),('Archivo jpg', '.jpg'),("todos los archivos","*.*")),defaultextension='.png')  #Abro ventana para seleccionar ubicacion
     print("Ubicacion imagen recotada: ")             
     print(directorio)
-    cv2.imwrite( directorio, img_mod)                           #Guardo la imagen binaria o procesada
+    cv2.imwrite( directorio, img_transformada)                  #Guardo la imagen binaria o procesada
     #showinfo.showinfo("Practico2", "Guardado con exito")       # título, mensaje
     cambiar_texto_label2("Guardado con exito", "black")         #Cambio texto y color de label2
 
@@ -195,10 +202,10 @@ root = tk.Tk()
 puerta_alto = DoubleVar()
 puerta_ancho = DoubleVar()
 mts_to_pixel =DoubleVar()
-puerta_alto.set(2.1)
-puerta_ancho.set(0.73)
-mts_to_pixel.set(100)
-bit = root.iconbitmap('icon.ico')
+puerta_alto.set(1.73)
+puerta_ancho.set(0.84)
+mts_to_pixel.set(50)
+#bit = root.iconbitmap('icon.ico')
 root.title(Nombre_app)
 root.resizable(False, False)
 root.geometry('300x380')
@@ -225,9 +232,9 @@ open_button.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 guardar_button.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 
 
-s2 = tk.Scale(root, variable = puerta_alto, from_=0, to=5, tickinterval=20, resolution =   0.1, orient=tk.HORIZONTAL, length=300, label = "Alto puerta [m]: ").pack()
-s3 = tk.Scale(root, variable = puerta_ancho, from_=0, to=5, tickinterval=20, resolution =   0.1, orient=tk.HORIZONTAL, length=300, label = "Ancho puerta [m]: ").pack()
-s4 = tk.Scale(root, variable = mts_to_pixel, from_=0, to=500, tickinterval=20,  resolution =  1, orient=tk.HORIZONTAL, length=300, label = "Relacion pixel/mts: ").pack()
+s2 = tk.Scale(root, variable = puerta_alto, from_=0, to=4, tickinterval=20, resolution =   0.01, orient=tk.HORIZONTAL, length=300, label = "Alto puerta [m]: ").pack()
+s3 = tk.Scale(root, variable = puerta_ancho, from_=0, to=4, tickinterval=20, resolution =   0.01, orient=tk.HORIZONTAL, length=300, label = "Ancho puerta [m]: ").pack()
+s4 = tk.Scale(root, variable = mts_to_pixel, from_=0, to=100, tickinterval=20,  resolution =  1, orient=tk.HORIZONTAL, length=300, label = "Relacion pixel/mts (Escala): ").pack()
 
 
 #genero un label
