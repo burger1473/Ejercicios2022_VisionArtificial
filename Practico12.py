@@ -11,7 +11,8 @@
 import tkinter as tk                            #Para ventana grafico
 from tkinter import ttk                         #Para ventana grafico
 from tkinter import *                           #Para ventana grafico
-from tkinter import filedialog as filedialog    #Para abrir y guardar archivos
+from tkinter import filedialog as filedialog
+from turtle import distance    #Para abrir y guardar archivos
 import numpy as np                              #Para tratar con numeros matematicos para opencv    
 import cv2                                      #Librerira opencv
 import copy                                     #Para poder copiar matrices
@@ -43,32 +44,56 @@ No retorna nada
 
 def Alinear_imagenes():
     MIN_MATCH_COUNT = 10
-    img1 = cv2.imread(ubicacion[0] , 0)# Leemos la imagen 1
-    img2 = cv2.imread(ubicacion[1] , 0)# Leemos la imagen 2
-    dscr = cv2.xfeatures2d.SIFT_create()# Inicializamos el detector y el descriptor
-    kp1 , des1 = dscr.detectAndCompute(img1, None)# Encontramos los puntos clave y los descriptores con SIFT en la imagen 1
-    kp2 , des2 = dscr.detectAndCompute(img2, None)# Encontramos los puntos clave y los descriptores con SIFT en la imagen 2
-    matcher = cv2.BFMatcher(cv2.NORM_L2)
-    matches = matcher.knnMatch(des1 , des2 , k=2)
-    # Guardamos los buenos matches usando el test de razón de Lowe
+    #img1 = cv2.imread(ubicacion[0] , 0)            #Leemos la imagen 1
+    #img2 = cv2.imread(ubicacion[1] , 0)            #Leemos la imagen 2
+    
+    img1 = cv2.imread("C:/Users/fabia/OneDrive/Desktop/1.jpg" , 0)            #Leemos la imagen 1
+    img2 = cv2.imread("C:/Users/fabia/OneDrive/Desktop/2.jpg" , 0)            #Leemos la imagen 2
+    
+    dscr = cv2.xfeatures2d.SIFT_create()           #Inicializamos el detector y el descriptor
+    
+    kp1 , des1 = dscr.detectAndCompute(img1, None) #Encontramos los puntos clave y los descriptores con SIFT en la imagen 1
+    kp2 , des2 = dscr.detectAndCompute(img2, None) #Encontramos los puntos clave y los descriptores con SIFT en la imagen 2
+    
+    #Muestro los puntos claves encontrados
     img1 = cv2.drawKeypoints(img1, kp1, None)
     img2 = cv2.drawKeypoints(img2, kp2, None)
-    cv2.imshow('R', img1)                            #Muestro el resultado
-    cv2.imshow('R2', img2)                            #Muestro el resultado
+
+    #Para marcar puntos relacionados
+    matchess =sorted(cv2.BFMatcher(cv2.NORM_L2).match(des1 , des2), key= lambda x:x.distance)
+    img3 = cv2.drawMatches(img1, kp1, img2, kp2, matchess[:600], img2, flags=2)
+    cv2.imshow('SIFT', img3)                         #Puntos relacionados
+
+    matcher = cv2.BFMatcher(cv2.NORM_L2)
+    matches = matcher.knnMatch(des1 , des2 , k=2)
+    #matches =sorted(cv2.BFMatcher(cv2.NORM_L2).match(des1 , des2), key= lambda x:x.distance)
+    #cv2.imshow('Img1', img1)                         #Muestro el resultado
+    #cv2.imshow('Img2', img2)                         #Muestro el resultado
+
+    # Guardamos los buenos matches usando el test de razón de Lowe
     good = []
     
     for m, n in matches:
         if m.distance < 0.7*n.distance:
             good.append(m)
-
+    
     if(len(good) > MIN_MATCH_COUNT):
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1 , 1 , 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1 , 1 , 2)
+        #print(dst_pts[1][0][0])
+        #print(dst_pts)
+        #for i in range(0, dst_pts.shape[0] - 1):
+        #    dst_pts[i][0][0]=dst_pts[i][0][0]+200
+        #print(dst_pts)
+        #[[[386.4723   143.67966 ]],[[386.4723   143.67966 ]]]
         H, mask = cv2.findHomography( dst_pts , src_pts , cv2.RANSAC, 5.0) # Computamos la homografía con RANSAC
-    
+        
     rows2, cols2 = img2.shape[:2]
+    
     wimg2 = cv2.warpPerspective(img2, H, (cols2,rows2)) #Aplico la transformación afín usando cv2.warpAffine()
-
+    #rows2=rows2+300
+   
+    cv2.imshow('R3', wimg2)                             #Muestro el resultado
     # Mezclamos ambas imágenes
     alpha = 0.5
     blend = np.array(wimg2*alpha + img1*(1-alpha), dtype=np.uint8)
