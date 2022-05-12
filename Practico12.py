@@ -4,7 +4,8 @@
  * Version: Python 3.7.0
  *          Open CV: 4.5.4-dev
  *          Desarrollado en: Windows 10 x64
- * Descripcion: 
+ * Descripcion: Este software permite abrir dos imagenes y unirlas generando una
+ *              vista panoramica. Las imagenes tienen que ser especificas para unir.
  *===========================================================================*/'''
 
 #======================== Incluciones ====================================
@@ -20,6 +21,7 @@ import copy                                     #Para poder copiar matrices
 #======================== Variable ====================================
 Nombre_app="Practico 12 - Burgos"
 ubicacion=""
+MIN_MATCH_COUNT = 10
 
 #======================== Implementaciones=============================
 
@@ -43,61 +45,62 @@ No retorna nada
 ========================================================================*/'''
 
 def Alinear_imagenes():
-    MIN_MATCH_COUNT = 10
-    #img1 = cv2.imread(ubicacion[0] , 0)            #Leemos la imagen 1
-    #img2 = cv2.imread(ubicacion[1] , 0)            #Leemos la imagen 2
+    global MIN_MATCH_COUNT
     
-    img1 = cv2.imread("C:/Users/fabia/OneDrive/Desktop/1.jpg" , 0)            #Leemos la imagen 1
-    img2 = cv2.imread("C:/Users/fabia/OneDrive/Desktop/2.jpg" , 0)            #Leemos la imagen 2
+    if len(ubicacion)!=2:                                             #Si se selecciono mas de 2 imagenes o menos de 2 imagenes
+        cambiar_texto_label2("Cantidad de imagenes erronea", "red")   #Escribo en label2
+        return                                                        #Regreso y salgo de la funcion
+
+    img1 = cv2.imread(ubicacion[0] , 0)                         #Leemos la imagen 1
+    img2 = cv2.imread(ubicacion[1] , 0)                         #Leemos la imagen 2
     
-    dscr = cv2.xfeatures2d.SIFT_create()           #Inicializamos el detector y el descriptor
+    imganes_juntas = cv2.hconcat([img1, img2])                  #Uno las dos imagenes una al lado de la otra
+    cv2.imshow('Imagenes originales', imganes_juntas)           #Muestro el resultado
+    dscr = cv2.xfeatures2d.SIFT_create()                        #Inicializamos el detector y el descriptor
     
-    kp1 , des1 = dscr.detectAndCompute(img1, None) #Encontramos los puntos clave y los descriptores con SIFT en la imagen 1
-    kp2 , des2 = dscr.detectAndCompute(img2, None) #Encontramos los puntos clave y los descriptores con SIFT en la imagen 2
+    kp1 , des1 = dscr.detectAndCompute(img1, None)              #Encontramos los puntos clave y los descriptores con SIFT en la imagen 1
+    kp2 , des2 = dscr.detectAndCompute(img2, None)              #Encontramos los puntos clave y los descriptores con SIFT en la imagen 2
     
     #Muestro los puntos claves encontrados
-    img1 = cv2.drawKeypoints(img1, kp1, None)
-    img2 = cv2.drawKeypoints(img2, kp2, None)
+    img1_keypoints = cv2.drawKeypoints(img1, kp1, None)         #Dibujo los puntos encontrados en imagen 1
+    img2_keypoints = cv2.drawKeypoints(img2, kp2, None)         #Dibujo los puntos encontrados en imagen 2
+    #cv2.imshow('Img1', img1_keypoints)                         #Muestro el resultado
+    #cv2.imshow('Img2', img2_keypoints)                         #Muestro el resultado
 
-    #Para marcar puntos relacionados
-    matchess =sorted(cv2.BFMatcher(cv2.NORM_L2).match(des1 , des2), key= lambda x:x.distance)
-    img3 = cv2.drawMatches(img1, kp1, img2, kp2, matchess[:600], img2, flags=2)
-    cv2.imshow('SIFT', img3)                         #Puntos relacionados
-
-    matcher = cv2.BFMatcher(cv2.NORM_L2)
-    matches = matcher.knnMatch(des1 , des2 , k=2)
-    #matches =sorted(cv2.BFMatcher(cv2.NORM_L2).match(des1 , des2), key= lambda x:x.distance)
-    #cv2.imshow('Img1', img1)                         #Muestro el resultado
-    #cv2.imshow('Img2', img2)                         #Muestro el resultado
-
-    # Guardamos los buenos matches usando el test de razón de Lowe
+    #Relaciono los puntos encontrados con emparejador o igualador (match)
+    matcher = cv2.BFMatcher(cv2.NORM_L2)                        #Creo match
+    matches = matcher.knnMatch(des1 , des2 , k=2)               #Obtengo puntos relacionados
+    
+    #Guardamos los buenos matches usando el test de razón de Lowe en la variable good
     good = []
     
-    for m, n in matches:
-        if m.distance < 0.7*n.distance:
-            good.append(m)
+    for m, n in matches:                                        #Recorro matches y obtengo m y n
+        if m.distance < 0.7*n.distance:                         #Filtro por las distancia de los puntos
+            good.append(m)                                      #Guardo el valor del punto en el arreglo good
     
-    if(len(good) > MIN_MATCH_COUNT):
-        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1 , 1 , 2)
-        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1 , 1 , 2)
-        #print(dst_pts[1][0][0])
-        #print(dst_pts)
-        #for i in range(0, dst_pts.shape[0] - 1):
-        #    dst_pts[i][0][0]=dst_pts[i][0][0]+200
-        #print(dst_pts)
-        #[[[386.4723   143.67966 ]],[[386.4723   143.67966 ]]]
-        H, mask = cv2.findHomography( dst_pts , src_pts , cv2.RANSAC, 5.0) # Computamos la homografía con RANSAC
+    if(len(good) > MIN_MATCH_COUNT):                                                                 #Si existen suficientes puntos luego del filtrado
+        img3 = cv2.drawMatches(img1_keypoints, kp1, img2_keypoints, kp2, good[:600], img2, flags=2)  #Para marcar puntos relacionados
+        cv2.imshow('Puntos iguales filtrados', img3)                                                 #Para mostrar puntos relacionados
         
-    rows2, cols2 = img2.shape[:2]
-    
-    wimg2 = cv2.warpPerspective(img2, H, (cols2,rows2)) #Aplico la transformación afín usando cv2.warpAffine()
-    #rows2=rows2+300
-   
-    cv2.imshow('R3', wimg2)                             #Muestro el resultado
-    # Mezclamos ambas imágenes
-    alpha = 0.5
-    blend = np.array(wimg2*alpha + img1*(1-alpha), dtype=np.uint8)
-    cv2.imshow('Resultado', blend)                            #Muestro el resultado
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1 , 1 , 2)                 #Obtengo los puntos para la homografia
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1 , 1 , 2)                 #Obtengo los puntos para la homografia
+       
+        H, mask = cv2.findHomography( dst_pts , src_pts , cv2.RANSAC, 5.0)  #Computamos la homografía para obtener la matriz de transformacion con RANSAC
+        
+        rows = img2.shape[0] + img1.shape[0]                                #El tamaño de salida es el conjunto de las dos imagenes
+        cols = img2.shape[1] + img1.shape[1]                                #El tamaño de salida es el conjunto de las dos imagenes
+        Perspectiva = cv2.warpPerspective(img2, H, (cols,rows))             #Aplico la transformación afín usando cv2.warpAffine()
+        
+        # Mezclamos ambas imágenes
+        alpha = 0.5                                                         #ALPHA
+        copia = Perspectiva.copy()*alpha                                    #Copia para no alterar imagen original
+        copia[:img1.shape[0],:img1.shape[1]] +=  img1*(1-alpha)             #Inserto valores de la imagen1 en la imagen con la perspectiva modificada tamaño perspectiva>img1  (750,1000,3)>(375,500,3)
+        copia=np.array(copia,dtype=np.uint8)                                #Convierto los datos a tipo entero sin signo de 8 bit
+        #blend = np.array(wimg2*alpha + img1*(1-alpha), dtype=np.uint8)     #Esta no sirve ya que las dos matrices son de diferente tamaño
+        #cv2.imshow('Resultado', d)                                         #Muestro el resultado sin recortar con bordes negros
+        recorte = copia[0:int(rows/2), 0:cols]                              #Recorto el resultado solo en eje y
+        cv2.imshow("Resultado recortado", recorte)                          #Muestro el resultado recortado
+        cambiar_texto_label2("Proceso terminado", "green")                  #Escribo en label2
 
 
 '''/*========================================================================
@@ -121,7 +124,7 @@ root = tk.Tk()
 #bit = root.iconbitmap('icon.ico')
 root.title(Nombre_app)
 root.resizable(False, False)
-root.geometry('300x300')
+root.geometry('300x100')
 id_generar = DoubleVar()
 
 #Describo boton abrir archivo
