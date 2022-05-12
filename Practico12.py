@@ -22,6 +22,7 @@ import copy                                     #Para poder copiar matrices
 Nombre_app="Practico 12 - Burgos"
 ubicacion=""
 MIN_MATCH_COUNT = 10
+panoramica = np.zeros((512, 512, 3),np.uint8)
 
 #======================== Implementaciones=============================
 
@@ -38,6 +39,19 @@ def Seleccionar_imagenes():
 
 
 '''/*========================================================================
+Funcion: hconcat_resize_min
+Descripcion: Sirve para unir dos imagenes de diferente tamaño una al lado de la otra
+Parametro de entrada: im_list: Lista con la ubicacion de las imagenes
+Retorna: La imagen unida
+========================================================================*/'''
+def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    h_min = min(im.shape[0] for im in im_list)
+    im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
+                      for im in im_list]
+    return cv2.hconcat(im_list_resize)
+
+
+'''/*========================================================================
 Funcion: Alinear_imagenes
 Descripcion: Alineacion de dos imagenes usando SIFT
 Sin parametro de entrada
@@ -45,16 +59,16 @@ No retorna nada
 ========================================================================*/'''
 
 def Alinear_imagenes():
-    global MIN_MATCH_COUNT
+    global MIN_MATCH_COUNT, alpha, panoramica                  #Variables globales
     
     if len(ubicacion)!=2:                                             #Si se selecciono mas de 2 imagenes o menos de 2 imagenes
         cambiar_texto_label2("Cantidad de imagenes erronea", "red")   #Escribo en label2
         return                                                        #Regreso y salgo de la funcion
 
-    img1 = cv2.imread(ubicacion[0] , 0)                         #Leemos la imagen 1
-    img2 = cv2.imread(ubicacion[1] , 0)                         #Leemos la imagen 2
-    
-    imganes_juntas = cv2.hconcat([img1, img2])                  #Uno las dos imagenes una al lado de la otra
+    img1 = cv2.imread(ubicacion[0] , 1)                         #Leemos la imagen 1
+    img2 = cv2.imread(ubicacion[1] , 1)                         #Leemos la imagen 2
+
+    imganes_juntas = hconcat_resize_min([img1, img2])           #Uno las dos imagenes una al lado de la otra
     cv2.imshow('Imagenes originales', imganes_juntas)           #Muestro el resultado
     dscr = cv2.xfeatures2d.SIFT_create()                        #Inicializamos el detector y el descriptor
     
@@ -73,7 +87,7 @@ def Alinear_imagenes():
     
     #Guardamos los buenos matches usando el test de razón de Lowe en la variable good
     good = []
-    
+
     for m, n in matches:                                        #Recorro matches y obtengo m y n
         if m.distance < 0.7*n.distance:                         #Filtro por las distancia de los puntos
             good.append(m)                                      #Guardo el valor del punto en el arreglo good
@@ -92,15 +106,30 @@ def Alinear_imagenes():
         Perspectiva = cv2.warpPerspective(img2, H, (cols,rows))             #Aplico la transformación afín usando cv2.warpAffine()
         
         # Mezclamos ambas imágenes
-        alpha = 0.5                                                         #ALPHA
-        copia = Perspectiva.copy()*alpha                                    #Copia para no alterar imagen original
-        copia[:img1.shape[0],:img1.shape[1]] +=  img1*(1-alpha)             #Inserto valores de la imagen1 en la imagen con la perspectiva modificada tamaño perspectiva>img1  (750,1000,3)>(375,500,3)
+        alpha2=alpha.get()/100                                              #Paso variable de porcentaje a valor
+        copia = Perspectiva.copy()*alpha2                                   #Copia para no alterar imagen original
+        copia[:img1.shape[0],:img1.shape[1]] +=  img1*(1-alpha2)            #Inserto valores de la imagen1 en la imagen con la perspectiva modificada tamaño perspectiva>img1  (750,1000,3)>(375,500,3)
         copia=np.array(copia,dtype=np.uint8)                                #Convierto los datos a tipo entero sin signo de 8 bit
         #blend = np.array(wimg2*alpha + img1*(1-alpha), dtype=np.uint8)     #Esta no sirve ya que las dos matrices son de diferente tamaño
         #cv2.imshow('Resultado', d)                                         #Muestro el resultado sin recortar con bordes negros
         recorte = copia[0:int(rows/2), 0:cols]                              #Recorto el resultado solo en eje y
         cv2.imshow("Resultado recortado", recorte)                          #Muestro el resultado recortado
         cambiar_texto_label2("Proceso terminado", "green")                  #Escribo en label2
+        panoramica = recorte                                                #Paso imagen local a global para poder guardarla
+
+
+'''/*========================================================================
+Funcion: Guardar_imagen
+Descripcion: Permite guardar una imagen
+Sin parametro de entrada
+No retorna nada
+========================================================================*/'''
+def Guardar_imagen():
+    global panoramica                                                     #Obtengo las variables globales
+    directorio=filedialog.asksaveasfilename(initialdir = "/",title = "Guardar como",filetypes = (('Archivo png', '.png'),('Archivo jpg', '.jpg'),("todos los archivos","*.*")),defaultextension='.png')  #Abro ventana para seleccionar ubicacion
+    cv2.imwrite( directorio, panoramica)                                  #Guardo la imagen binaria o procesada
+    #showinfo.showinfo("Practico2", "Guardado con exito")                 #Título, mensaje
+    cambiar_texto_label2("Guardado con exito", "black")                   #Cambio texto y color de label2
 
 
 '''/*========================================================================
@@ -120,33 +149,29 @@ def cambiar_texto_label2(texto, color):
 
 # Creo el root de windows
 root = tk.Tk()
-
+alpha =DoubleVar()
+alpha.set(50)
 #bit = root.iconbitmap('icon.ico')
 root.title(Nombre_app)
 root.resizable(False, False)
-root.geometry('300x100')
+root.geometry('300x230')
 id_generar = DoubleVar()
 
 #Describo boton abrir archivo
-open_button = ttk.Button(
-    root,
-    text='Seleccionar 2 imagenes',
-    command= Seleccionar_imagenes
-)
-
+open_button = ttk.Button(root, text='Seleccionar 2 imagenes', command= Seleccionar_imagenes)
 
 #Describo boton para visualizar video por realidad aumentada
-Alinear= ttk.Button(
-    root,
-    text='Alinear imagenes',
-    command=Alinear_imagenes
-)
+Alinear= ttk.Button(root, text='Alinear imagenes', command=Alinear_imagenes)
 
-
+#Describo boton para guardar recorte
+guardar_button = ttk.Button(root, text='Guardar imagen alineada', command=Guardar_imagen)
 
 #Implemento los botones en el root
 open_button.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 Alinear.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
+guardar_button.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
+
+s1 = tk.Scale(root, variable = alpha, from_=0, to=100, tickinterval=20, resolution =   1, orient=tk.HORIZONTAL, length=300, label = "Mezclar con un alpha de: (%)").pack()
 
 #Genero un label
 label2 = Label(root,text="")
