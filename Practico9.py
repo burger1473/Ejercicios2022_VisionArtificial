@@ -74,10 +74,10 @@ def transformacion():
     #Aplico la transformación afín usando cv2.warpAffine()
     img_transformada = cv2.warpPerspective(img, M, (cols2,rows2),flags=cv2.INTER_LINEAR)
 
-    
-    
-    cv2.imshow('Resultado', img_transformada)                     #Muestro el resultado
-    cambiar_texto_label2("Proceso finalizado", "green")           #Cambio texto y color de label2
+    cropped = img_transformada[0:int(imagen_alto.get()), 0:int(imagen_ancho.get())]  #Recorto solo para mostrar el rectangulo
+    cv2.imshow("cropped", cropped)                                                   #Muestro recorte
+    #cv2.imshow('Resultado', img_transformada)                                       #Muestro el resultado
+    cambiar_texto_label2("Proceso finalizado", "green")                              #Cambio texto y color de label2
 
 
 '''/*========================================================================
@@ -90,7 +90,7 @@ def callback ( event , x , y , flags , param):
     global cant_puntos, img_mod
     if event == cv2.EVENT_LBUTTONDOWN:                                     #Si el boton izquierdo se presiona
         if cant_puntos<4:
-            cv2.circle(img_mod, (x,y) , 3 , (0,0,255) , -1)                    #Dibujo punto
+            cv2.circle(img_mod, (x,y) , 3 , (0,0,255) , -1)                #Dibujo punto
             puntos[cant_puntos][0]=x                                       #Almaceno la posicion x del punto
             puntos[cant_puntos][1]=y                                       #Almaceno la posicion y del punto
             cant_puntos=cant_puntos+1
@@ -98,7 +98,7 @@ def callback ( event , x , y , flags , param):
         if cant_puntos == 4:
             cant_puntos=5                                                  #Valorizo en 5 para que cualquier click izquierdo no tenga efecto
             transformacion()
-    cv2.imshow('Original', img_mod)                                 #Muestro imagen en la ventana
+    cv2.imshow('Original', img_mod)                                        #Muestro imagen en la ventana
     
 
 
@@ -118,7 +118,7 @@ def Abrir_foto():
     cv2.setMouseCallback ('Original',callback)                  #Establesco evento de mause sobre la ventana
     print("Foto abierta")                                       #Indico que termino el proceso por la consola
     img_mod=copy.deepcopy(img)                                  #Copio la imagen original en una variable
-    cv2.imshow('Original', img_mod)                                 #Muestro imagen en la ventana
+    cv2.imshow('Original', img_mod)                             #Muestro imagen en la ventana
     cant_puntos=0                                               #Reseteo la cant de puntos cuando se abre una nueva imagen
 
 '''/*========================================================================
@@ -186,8 +186,8 @@ open_button.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 guardar_button.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5)
 
 
-s2 = tk.Scale(root, variable = imagen_alto, from_=0, to=100, tickinterval=20, resolution =   0.1, orient=tk.HORIZONTAL, length=300, label = "Alto pixel: ").pack()
-s3 = tk.Scale(root, variable = imagen_ancho, from_=0, to=100, tickinterval=20, resolution =   0.1, orient=tk.HORIZONTAL, length=300, label = "Ancho pixel: ").pack()
+s2 = tk.Scale(root, variable = imagen_alto, from_=0, to=200, tickinterval=20, resolution =   1, orient=tk.HORIZONTAL, length=300, label = "Alto pixel: ").pack()
+s3 = tk.Scale(root, variable = imagen_ancho, from_=0, to=200, tickinterval=20, resolution =   1, orient=tk.HORIZONTAL, length=300, label = "Ancho pixel: ").pack()
 
 
 #genero un label
